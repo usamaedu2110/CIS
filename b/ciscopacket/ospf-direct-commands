@@ -1,0 +1,117 @@
+CONFIGURE ROUTER COMMANDS--------------------------------
+
+------ROUTER 1--------
+en
+conf t
+host r1
+int g0/1
+ip address 192.168.1.1 255.255.255.0
+no shut
+int s0/0/0
+ip address 10.1.1.1 255.255.255.252
+no shut
+
+------ROUTER 2--------
+en
+conf t
+host r2
+int s0/0/0
+ip address 10.1.1.2 255.255.255.252
+no shut
+int s0/0/1
+ip address 10.2.2.2 255.255.255.252
+no shut
+
+------ROUTER 3--------
+en
+conf t
+host r3
+int g0/1
+ip address 192.168.3.1 255.255.255.0
+no shut
+int s0/0/1
+ip address 10.2.2.1 255.255.255.252
+no shut
+
+
+AFTER CONFIGURING THE ROUTERS--------------------------------
+
+------ROUTER 1--------
+conf t
+router ospf 1
+network 192.168.1.0 0.0.0.255 area 0
+network 10.1.1.0 0.0.0.3 area 0
+exit
+exit
+sh ip route
+
+------ROUTER 2--------
+conf t
+router ospf 1
+network 10.1.1.0 0.0.0.3 area 0
+network 10.2.2.0 0.0.0.3 area 0
+exit
+exit
+sh ip route
+
+------ROUTER 3--------
+conf t
+router ospf 1
+network 192.168.3.0 0.0.0.255 area 0
+network 10.2.2.0 0.0.0.3 area 0
+exit
+exit
+sh ip route
+
+
+
+------ROUTER 1--------
+conf t
+router ospf 1
+int s0/0/0
+ip ospf message-digest-key 1 md5 ty22
+exit
+do sh ip ospf int
+
+------ROUTER 2--------
+conf t
+router ospf 1
+int s0/0/0
+ip ospf message-digest-key 1 md5 ty22
+int s0/0/1
+ip ospf message-digest-key 1 md5 ty22
+exit
+do sh ip ospf int
+
+------ROUTER 3--------
+conf t
+router ospf 1
+int s0/0/1
+ip ospf message-digest-key 1 md5 ty22
+exit
+do sh ip ospf int
+
+
+
+------ROUTER 3--------
+conf t
+ip domain-name tyitsecurity.com
+enable secret ty22
+
+
+------ROUTER 3--------
+conf t
+username kaanchi privilege 15 secret ty22
+line vty 0 4
+login local
+transport input ssh
+exit
+crypto key generate rsa
+do sh ip ssh
+
+
+
+COMMAND PROMPT OF PC-C --------------------------------
+
+telnet 192.168.3.1
+ssh -l kaanchi 192.168.3.1

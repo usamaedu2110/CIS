@@ -1,0 +1,106 @@
+(A) Configure Router
+    Router 1
+        Router>en
+        Router#conf t
+        Router(config)#host r1
+        r1(config)#int g0/1
+        r1(config-if)# ip address 192.168.1.1 255.255.255.0
+        r1(config-if)#no shut
+        r1(config-if)#int s0/0/0
+        r1(config-if)#ip address 10.1.1.2 255.255.255.252
+        r1(config-if)#no shut
+    Router 2
+        Router>en
+        Router#conf t
+        Router(config)#host r2
+        r2(config)#int g0/0
+        r2(config-if)#ip address 192.168.2.1 255.255.255.0
+        r2(config-if)#no shut
+        r2(config-if)#int s0/0/0
+        r2(config-if)#ip address 10.1.1.1 255.255.255.252
+        r2(config-if)#no shut
+        r2(config-if)#int s0/0/1
+        r2(config-if)#ip address 10.2.2.1 255.255.255.252
+        r2(config-if)#no shut
+    Router 3
+        Router>en
+        Router#conf t
+        Router(config)#host r3
+        r3(config)#int g0/1
+        r3(config-if)#ip address 192.168.3.1 255.255.255.0
+        r3(config-if)#no shut
+        r3(config-if)#int s0/0/1
+        r3(config-if)#ip address 10.2.2.2 255.255.255.252
+        r3(config-if)#no shut
+
+(B) Configure RIP on routers
+    Router 1
+        r1(config)#router rip
+        r1(config-router)#network 192.168.1.0
+        r1(config-router)#network 10.1.1.0
+        r1(config-router)#exit
+        r1>sh ip route
+    Router 2
+        r2(config)#router rip
+        r2(config-router)#network 10.1.1.0
+        r2(config-router)#network 192.168.2.0
+        r2(config-router)#network 10.2.2.0
+        r2(config-router)#exit
+        r2>sh ip route
+    Router 3
+        r3(config)#router rip
+        r3(config-router)#network 192.168.3.0
+        r3(config-router)#network 10.2.2.0
+        r3(config-router)#exit
+        r3>sh ip route
+
+(C) Configure local AAA authentication on Router 1
+    r1>en
+    r1#conf t
+    r1(config)#username kaanchi secret ty22
+    r1(config)#aaa new-model
+    r1(config)#aaa authentication login default local
+    r1(config)#line console 0
+    r1(config-line)#login authentication default
+    Username is Kaanchi and password is ty22.
+
+(D) Configure local AAA authentication for vty lines on Router 1
+    r1>en
+    r1#conf t
+    r1(config)#ip domain-name security.com
+    r1(config)#crypto key generate rsa
+    How many bits in the modulus will be asked, enter 1024.
+    r1(config)#aaa authentication login SSH-LOGIN local
+    r1(config)#line vty 0 4
+    r1(config-line)#login authentication SSH-LOGIN
+    r1(config-line)#transport input ssh
+    r1(config-line)#exit
+    Go to PC – A Command Prompt and enter ssh -l Kaanchi 192.168.1.1. It will ask for password, enter ty22.
+
+(E) Configure service-based AAA authentication using TACACS+ on Router 2
+    Go to services of TACACS+ Server and then select AAA. Switch on the service and enter the client IP and password. Setup username and password as well.
+    r2>en
+    r2#conf t
+    r2(config)#username admin secret admin123
+    r2(config)#tacacs-server host 192.168.2.2
+    r2(config)#tacacs-server key pwdr2
+    r2(config)#aaa new-model
+    r2(config)#aaa authentication login default group tacacs+ local
+    r2(config)#line console 0
+    r2(config-line)#login authentication default
+    User Access Verification is asked enter the credentials of the TACACS+ Server.
+    Username is admin and password is admin123 which is also the username and password set for TACACS Server.
+
+(F) Configure server-based AAA authentication using RADIUS on Router 3
+    Go to services of RADIUS Server and then select AAA. Switch on the service and enter the client IP and password. Setup username and password as well.
+    r3>en
+    r3#conf t
+    r3(config)#username admin1 secret admin321
+    r3(config)#radius-server host 192.168.3.2
+    r3(config)#radius-server key pwdr3
+    r3(config)#aaa new-model
+    r3(config)#aaa authentication login default group radius local
+    r3(config)#line console 0
+    r3(config-line)#login authentication default
+    User Access Verification is asked enter the credentials of the RADIUS Server.
+    Username is admin1 and password is admin321 which is also set in radius server.

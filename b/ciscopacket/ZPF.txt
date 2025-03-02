@@ -1,0 +1,119 @@
+(A) Configure Router
+    Router 1
+        Router>en
+        Router#conf t
+        Router(config)#host r1
+        r1(config)#int g0/1
+        r1(config-if)# ip address 192.168.1.1 255.255.255.0
+        r1(config-if)#no shut
+        r1(config-if)#int s0/0/0
+        r1(config-if)#ip address 10.1.1.1 255.255.255.252
+        r1(config-if)#no shut
+    Router 2
+        Router>en
+        Router#conf t
+        Router(config)#host r2
+        r2(config)#int s0/0/0
+        r2(config-if)#ip address 10.1.1.2 255.255.255.252
+        r2(config-if)#no shut
+        r2(config-if)#int s0/0/1
+        r2(config-if)#ip address 10.2.2.2 255.255.255.252
+        r2(config-if)#no shut
+    Router 3
+        Router>en
+        Router#conf t
+        Router(config)#host r3
+        r3(config)#int g0/1
+        r3(config-if)#ip address 192.168.3.1 255.255.255.0
+        r3(config-if)#no shut
+        r3(config-if)#int s0/0/1
+        r3(config-if)#ip address 10.2.2.1 255.255.255.252
+        r3(config-if)#no shut
+(B) Configure Static Routing
+    Go to Config of Router1 → Static under Routing and add the details that are
+    Network: 0.0.0.0 Mask: 0.0.0.0 Next Hop: 10.1.1.2
+    r1#show ip route
+    Similarly, for Router2:
+    Network: 192.168. 1.0 Mask: 255.255.255.0 Next Hop: 10.1.1.1
+    Network: 192.168.3.0 Mask: 255.255.255.0 Next Hop: 10.2.2.1
+    r2#show ip route
+    Router3 as well:
+    Network: 0.0.0.0 Mask: 0.0.0.0 Next Hop: 10.2.2.2
+    r3#show ip route
+    The S proves that static routing is successful.
+
+(C) Password Authentication of Router
+    Router1:
+        r1(config)#enable secret ty22
+        r1(config)#line console 0
+        r1(config-line)#password ty22
+        r1(config-line)#login
+        r1(config-line)#exit
+        Exit from the connection.
+    Under User Access Verification password is asked, enter ty22, it will not be seen but the system will accept it.
+    Connection to the router will open again.
+    In Router1:
+        r1#conf t
+        r1(config)#username admin1 secret admin123
+        r1(config)#aaa new-model
+        r1(config)#aaa authentication login default local
+        r1(config)#line console 0
+        r1(config-line)#login authentication default
+        r1(config-line)#end
+        End the connection completely.
+
+    Again, User Access Verification will come, enter Username as admin1 and Password as admin123. After enabling the router if again a password is asked enter ty22.
+    r1(config)#ip domain-name security.com
+    r1(config)#crypto key generate rsa
+    How many bits in the modulus will be asked, enter 1024.
+    r1(config)#aaa authentication login sshlogin local
+    r1(config)#line vty 0 4
+    r1(config-line)#login authentication ssh login
+    r1(config-line)#transport input ssh
+    r1(config-line)#end
+
+(D) Enable security technology package on Router3
+    In Router3 CLI:
+        r3(config)#license boot module c1900 technology-package securityk9
+        Accept the agreement by typing yes.
+        r3#reload
+        Confirm the reload.
+        r3#show version
+
+(E) Create firewall zone on Router3
+    r3(config)#zone security IN-ZONE
+    r3(config-sec-zone)#exit
+    r3(config)#zone security OUT-ZONE
+    r3(config-sec-zone)#exit
+
+(F) Identify traffic using a class-map
+    r3(config)# access-list 101 permit ip 192.168.3.0 0.0.0.255 any
+    r3(config)# class-map type inspect match-all IN-NET-CLASS-MAP
+    r3(config-cmap)# match access-group 101
+    r3(config-cmap)# exit
+
+(G) Firewall policies
+    r3(config)# policy-map type inspect IN-2-OUT-PMAP
+    r3(config-pmap)# class type inspect IN-NET-CLASS-MAP
+    r3(config-pmap-c)# inspect
+    r3(config-pmap-c)# exit
+    r3(config-pmap)# exit
+    r3(config)# zone-pair security IN-2-OUT-ZPAIR source IN-ZONE destination OUT-ZONE
+    r3(config-sec-zone-pair)# service-policy type inspect IN-2-OUT-PMAP
+    r3(config-sec-zone-pair)# exit
+    r3(config)# interface g0/1
+    r3(config-if)# zone-member security IN-ZONE
+    r3(config-if)# exit
+    r3(config)# interface s0/0/1
+    r3(config-if)# zone-member security OUT-ZONE
+    r3(config-if)# exit
+
+(H) Test firewall functionality from IN-ZONE to OUT-ZONE
+    Open Command Prompt of PC – C and ping 192.168.1.3 that is PC – A (Server). It should be successful.
+    In CLI mode of Router 3 type,
+        r3#show policy-map type inspect zone-pair sessions
+    The details regarding the policy should be displayed.
+    Go to Web Browser of PC - C enter http://192.168.1.3 and click on Go, Cisco Packet Tracer page will be displayed.
+
+(I) Test firewall functionality from OUT-ZONE to IN-ZONE
+    Open Command Prompt of PC – A and ping 192.168.3.3 that is PC – C. It should fail.
